@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<!--[if lte IE 8]><html><![endif]-->
+<html dir="rtl" ng-app="myApp" ng-controller="myCtrl">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title ng-bind="title">שעון פסיכומטרי</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<style>
+		fieldset {
+			border: 0;
+		}
+
+		.redText {
+			color: red;
+		}
+
+		.greyText {
+			color: #616161;
+			background-color: #BDBDBD;
+		}
+
+		#header {
+			background-color: #00BCD4;
+			color: white;
+			padding-right: 8px;
+		}
+
+		#buttons {
+			text-align: center;
+		}
+
+		#top {
+			background-color: #F5F5F5;
+			text-align: center;
+			padding-bottom: 12px;
+		}
+
+		#timer {
+			font-size: 38px;
+			letter-spacing: 6px;
+			padding: 16px 0;
+		}
+
+		#section {
+			font-size: 24px;
+		}
+
+
+
+		button {
+			padding-top: 4px;
+			padding-bottom: 6px;
+			padding-left: 12px;
+			padding-right: 12px;
+			margin-right: 12px;
+			border: none;
+			font-size: 14px;
+			color: white;
+			background-color: #00BCD4;
+			border-radius: 6px;
+			box-shadow: 0 0 3px rgba(0, 0, 0, 0.45);
+			margin-bottom: 12px;
+		}
+
+		button:disabled {
+			background-color: #9E9E9E;
+		}
+
+		button:hover:disabled {
+			background-color: #9E9E9E;
+		}
+
+		.material-icons {
+			font-size: 18px;
+			vertical-align: middle;
+		}
+
+		button:hover {
+			background-color: #0097A7;
+		}
+
+		button:active {
+			background-color: #006064;
+		}
+
+		.start-button {
+			background-color: #4CAF50;
+		}
+
+		.start-button:hover {
+			background-color: #388E3C;
+		}
+
+		.start-button:active {
+			background-color: #1B5E20;
+		}
+	</style>
+</head>
+
+<body ng-cloak>
+	<!--[if lte IE 8]><p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p><![endif]-->
+
+	<h1 id="header">שעון פסיכומטרי</h1>
+	<div id="top">
+
+		<h2 id="timer" ng-bind="changeToText()" ng-class="colors"></h2>
+		<h3 id="section">פרק:
+			<span ng-bind="clock.currentSection ? clock.currentSection : 'כתיבה'"></span>
+		</h3>
+	</div>
+	<div id="buttons">
+		<button ng-disabled="!clock.active" ng-click="playPause()">
+			<span ng-show="clock.pause">
+				<i class="material-icons">play_arrow</i>
+				המשך
+			</span>
+			<span ng-hide="clock.pause">
+				<i class="material-icons">pause</i>
+				עצור
+			</span>
+		</button>
+		<button ng-disabled="!clock.active" ng-click="skip()">
+			<i class="material-icons">skip_next</i>
+			דלג לפרק הבא
+		</button>
+		<button ng-disabled="!clock.active" ng-click="reset()">
+			<i class="material-icons">stop</i>
+			איפוס שעון
+		</button>
+	</div>
+
+
+	<fieldset ng-class="{greyText: clock.active}" ng-disabled="clock.active">
+		<h3>הגדרות</h3>
+		<ul>
+			<li>
+				<label>
+					<input type="checkbox" ng-model="appSettings.writingSection">האם להוסיף פרק כתיבה לתחילת המבחן?
+				</label>
+			</li>
+			<li>
+				מספר פרקי בררה (שאלות אמריקאיות)
+				<input type="number" min="1" ng-model="appSettings.numOfSections">
+			</li>
+			<li>
+				<label>
+					<input type="checkbox" ng-model="appSettings.showTimeRemainingClock">האם להציג את השעון?
+				</label>
+			</li>
+			<li>
+				<label>
+					<input type="checkbox" ng-model="appSettings.warnClockColor">האם השעון יצבע שבצע אדום 5 דקות לסוף הפרק? (עובד גם אם השעון מבוטל)
+				</label>
+			</li>
+			<li>
+				התראת 5 דקות לסוף הפרק (קול/צליל/ללא)
+				<select ng-model="appSettings.warn5Min">
+					<option value="voice">קול</option>
+					<option value="beep">צפצוף</option>
+					<option value="noSound">ללא</option>
+				</select>
+			</li>
+			<li>
+				התראת פרק חדש (קול/צליל/ללא)
+				<select ng-model="appSettings.warnNewSection">
+					<option value="voice">קול</option>
+					<option value="beep">צפצוף</option>
+					<option value="noSound">ללא</option>
+				</select>
+			</li>
+		</ul>
+		<button class="start-button" ng-click="startClock()">
+			<i class="material-icons">alarm</i>
+			התחל מבחן
+		</button>
+	</fieldset>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+	<script>
+		'use strict'
+
+		angular.module('myApp', [])
+			.controller('myCtrl', ['$scope', '$interval', function ($scope, $interval) {
+				var intervalPromise;
+
+				var audio = {
+					start: function () {
+						() => console.log('endTest' + $scope.appSettings.warnNewSection)
+					},
+					fiveMin: function () {
+						() => console.log('fiveMin' + $scope.appSettings.warn5Min)
+					},
+					endSection: function () {
+						() => console.log('endSection' + $scope.appSettings.warnNewSection)
+					},
+					endTest: function () {
+						() => console.log('endTest' + $scope.appSettings.warnNewSection)
+					}
+				}
+
+				$scope.appSettings = {
+					writingSection: true,
+					numOfSections: 1,
+					showTimeRemainingClock: true,
+					warn5Min: 'beep',
+					warnNewSection: 'beep',
+					warnClockColor: true
+				}
+
+				$scope.reset = function () { // Also init fn
+					$scope.title = "שעון פסיכומטרי";
+
+					$scope.clock = {
+						active: false,
+						pause: false,
+						time: null,
+						currentSection: null
+					}
+
+					$scope.colors = {
+						redText: false,
+						greyText: false
+					}
+				}
+				$scope.reset();
+
+				$scope.startClock = function () { // Start the timer
+					if ($scope.appSettings.writingSection) {
+						$scope.clock = {
+							active: true,
+							pause: false,
+							time: 1800, //1800sec = 30min
+							currentSection: 0
+						}
+					} else {
+						$scope.clock = {
+							active: true,
+							pause: false,
+							time: 1200, //1200sec = 20min
+							currentSection: 1
+						}
+						audio.start();
+					}
+
+					$interval.cancel(intervalPromise); // Cencel old intervals running
+					intervalPromise = $interval(function () { // Set int every second
+						if ($scope.clock.active && !$scope.clock.pause) { // If clock running
+							if ($scope.clock.time > 0) // If not end of section
+								$scope.clock.time--;
+							else // If end of section
+								$scope.skip();
+						}
+					}, 1000); //1000ms = 1sec
+				}
+
+				$scope.playPause = function () { // Play or pause the clock
+					$scope.clock.pause = !$scope.clock.pause;
+					$scope.colors.greyText = $scope.clock.pause;
+				}
+
+				$scope.skip = function () { // Skip to next section
+					if ($scope.appSettings.numOfSections > $scope.clock.currentSection) { // If end of section
+						$scope.clock.currentSection++;
+						$scope.clock.time = 1200; //20min
+					} else // If end of test
+						$scope.clock.time = 0;
+				}
+
+				$scope.changeToText = function () {
+					if ($scope.clock.active) { // If clock running
+
+						if ($scope.clock.time === 300) // If 5 min
+							audio.fiveMin();
+
+						if ($scope.clock.time < 300) // If less then 5 min
+							$scope.colors.redText = $scope.appSettings.warnClockColor;
+
+						if ($scope.clock.time) { // If not time is not 0
+							if ($scope.appSettings.showTimeRemainingClock) { // If to show time remaining
+
+								var min = Math.floor($scope.clock.time / 60);
+								var sec = $scope.clock.time % 60;
+
+								$scope.title = "שעון פסיכומטרי - " + min + ":" + (sec < 10 ? ("0" + sec) : sec);
+								return "0:" + (min < 10 ? ("0" + min) : min) + ":" + (sec < 10 ? ("0" + sec) : sec);
+
+							} else // If to not show time remaining
+								return "שעון רץ" + ".".repeat(3 - ($scope.clock.time % 3));
+
+						} else { // if time is 0
+							$scope.redText = false;
+							if ($scope.clock.currentSection === $scope.appSettings.numOfSections) { // If end of test
+								audio.endTest();
+								return "תם המבחן!";
+							} else { // If end of section
+								audio.endSection();
+								return "תם הפרק!";
+							}
+						}
+
+					} else // If clock 	not running
+						return "לחץ 'התחל מבחן' כדי להפעיל את השעון";
+				}
+			}]);
+	</script>
+</body>
+
+</html>
