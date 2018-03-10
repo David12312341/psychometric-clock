@@ -204,10 +204,10 @@
 
 				$scope.appSettings = {
 					writingSection: true,
-					numOfSections: 1,
+					numOfSections: 8,
 					showTimeRemainingClock: true,
-					warn5Min: 'beep',
-					warnNewSection: 'beep',
+					warn5Min: 'noSound',
+					warnNewSection: 'noSound',
 					warnClockColor: true
 				}
 
@@ -295,6 +295,7 @@
 							$scope.redText = false;
 							if ($scope.clock.currentSection === $scope.appSettings.numOfSections) { // If end of test
 								audio.endTest();
+								$scope.title = "שעון פסיכומטרי - תם המבחן";
 								return "תם המבחן!";
 							} else { // If end of section
 								audio.endSection();
@@ -302,7 +303,7 @@
 							}
 						}
 
-					} else // If clock 	not running
+					} else // If clock not running
 						return "לחץ 'התחל מבחן' כדי להפעיל את השעון";
 				}
 			}]);
